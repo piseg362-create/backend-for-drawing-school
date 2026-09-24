@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "../../../../../db/connetion";
 import MessageStatusModel from "../../../../../model/message/messageStatus.model";
 
+import { NextResponse } from "next/server";
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,10 +12,16 @@ export async function GET(request) {
     const token = searchParams.get("hub.verify_token");
     const challenge = searchParams.get("hub.challenge");
 
+    console.log("Webhook verification request:");
+    console.log("mode:", mode);
+    console.log("token:", token);
+    console.log("challenge:", challenge);
+
     const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
-    // Meta webhook verification
     if (mode === "subscribe" && token === verifyToken) {
+      console.log("Webhook verified successfully");
+
       return new NextResponse(challenge, {
         status: 200,
         headers: {
@@ -22,26 +30,19 @@ export async function GET(request) {
       });
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Invalid verification token",
-      },
-      { status: 403 }
-    );
+    console.log("Webhook verification failed");
+
+    return new NextResponse("Forbidden", {
+      status: 403,
+    });
   } catch (error) {
     console.error("Webhook GET error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    return new NextResponse("Internal Server Error", {
+      status: 500,
+    });
   }
 }
-
 export async function POST(request) {
   try {
     const body = await request.json();
