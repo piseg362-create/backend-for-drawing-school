@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { connectDB } from "../../../../db/connetion";
 import MessageStatusModel from "../../../../model/message/messageStatus.model";
 
-import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
