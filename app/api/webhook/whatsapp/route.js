@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "../../../../db/connetion";
 import MessageStatusModel from "../../../../model/message/messageStatus.model";
+import WhatsAppConfigModel from "../../../../model/message/whatsAppConfig.model";
 
 
 export async function GET(request) {
@@ -85,8 +86,20 @@ export async function POST(request) {
         // --------------------------------
 
         if (value?.statuses) {
+          // Get the phone_number_id from the metadata
+          const phoneNumberId = value?.metadata?.phone_number_id;
+          
+          let wbId = null;
+          if (phoneNumberId) {
+            const config = await WhatsAppConfigModel.findOne({ phoneNumberId });
+            if (config) {
+              wbId = config.client;
+            }
+          }
+
           for (const statusObj of value.statuses) {
             await MessageStatusModel.create({
+              wbId: wbId || "unknown",
               messageId: statusObj.id,
               status: statusObj.status,
               recipientId: statusObj.recipient_id,
