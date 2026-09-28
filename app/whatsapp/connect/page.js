@@ -8,7 +8,7 @@ function WhatsAppConnectContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const userId = searchParams.get("userId");
-  const accesstoken = searchParams.get("accesstoken");
+  const accesstoken = searchParams.get("accessToken");
   const businessName = searchParams.get("businessName");
 
   const [isLoaded, setIsLoaded] = useState(false);
