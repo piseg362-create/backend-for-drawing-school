@@ -1,31 +1,48 @@
 import mongoose from "mongoose";
 
-const messageStatusSchema = new mongoose.Schema(
+const whatsappConnectionSchema = new mongoose.Schema(
   {
-    wbId: {
+    // School / customer this WhatsApp account belongs to
+    schoolId: {
       type: String,
       required: true,
       index: true,
     },
-    messageId: {
+
+    // WhatsApp Business Account ID
+    wabaId: {
       type: String,
       required: true,
       index: true,
     },
+
+    // WhatsApp Phone Number ID
+    phoneNumberId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    // WhatsApp access token received from Meta
+    accessToken: {
+      type: String,
+      required: true,
+    },
+
+    // Optional phone number information
+    displayPhoneNumber: {
+      type: String,
+    },
+
+    // Optional WhatsApp business name
+    verifiedName: {
+      type: String,
+    },
+
     status: {
       type: String,
-      required: true,
-      enum: ["sent", "delivered", "read", "failed", "deleted", "replied"],
-    },
-    recipientId: {
-      type: String,
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
-    rawPayload: {
-      type: mongoose.Schema.Types.Mixed,
+      enum: ["connected", "disconnected", "expired"],
+      default: "connected",
     },
   },
   {
@@ -33,8 +50,11 @@ const messageStatusSchema = new mongoose.Schema(
   }
 );
 
-const MessageStatusModel =
-  mongoose.models.MessageStatus ||
-  mongoose.model("MessageStatus", messageStatusSchema);
+const WhatsAppConnectionModel =
+  mongoose.models.WhatsAppConnection ||
+  mongoose.model(
+    "WhatsAppConnection",
+    whatsappConnectionSchema
+  );
 
-export default MessageStatusModel;
+export default WhatsAppConnectionModel;
