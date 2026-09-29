@@ -267,39 +267,26 @@ export async function POST(request) {
       "Searching connection for userId:",
       userId,
     );
-
-    const savedConnection =
-      await WhatsAppConnectionModel.findOneAndUpdate(
-        {
-          userId,
-        },
-
-        {
-          userId,
-
-          wabaId,
-
-          phoneNumberId,
-
-          accessToken,
-
-          displayPhoneNumber,
-
-          verifiedName,
-
-          status:
-            "connected",
-        },
-
-        {
-          new: true,
-
-          upsert: true,
-
-          setDefaultsOnInsert:
-            true,
-        },
-      );
+const savedConnection =
+  await WhatsAppConnectionModel.findOneAndUpdate(
+    {
+      _id: userId,
+    },
+    {
+      userId,
+      wabaId,
+      phoneNumberId,
+      accessToken,
+      displayPhoneNumber,
+      verifiedName,
+      status: "connected",
+    },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
 
     console.log(
       "✅ WhatsApp connection saved",
