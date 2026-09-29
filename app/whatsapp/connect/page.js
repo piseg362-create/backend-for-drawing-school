@@ -6,9 +6,13 @@ import { Suspense, useEffect, useState, useRef } from "react";
 
 function WhatsAppConnectContent() {
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+
+  const schoolId =
+    searchParams.get("schoolId") ||
+    searchParams.get("id");
+
   const userId = searchParams.get("userId");
-  const accesstoken = searchParams.get("accessToken");
+  const accessToken = searchParams.get("accessToken");
   const businessName = searchParams.get("businessName");
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -18,82 +22,302 @@ function WhatsAppConnectContent() {
 
   const waDataRef = useRef(null);
 
+  // ------------------------------------------------
+  // URL DEBUG LOG
+  // ------------------------------------------------
+  useEffect(() => {
+    console.log("========== WHATSAPP CONNECT DEBUG ==========");
+
+    console.log("Current URL:", window.location.href);
+
+    console.log("Query Parameters:", {
+      schoolId,
+      userId,
+      businessName,
+      hasAccessToken: !!accessToken,
+    });
+
+    console.log("============================================");
+  }, [schoolId, userId, businessName, accessToken]);
+
+  // ------------------------------------------------
+  // META POSTMESSAGE LISTENER
+  // ------------------------------------------------
   useEffect(() => {
     const handleMessage = (event) => {
-      // Listen for the specific message from the Meta popup
-      if (event.data?.type === "WA_EMBEDDED_SIGNUP") {
-        waDataRef.current = event.data;
+      console.log("========== POSTMESSAGE RECEIVED ==========");
+      console.log("Origin:", event.origin);
+      console.log("Raw event.data:", event.data);
+
+      // Only accept Meta
+      if (
+        event.origin !== "https://www.facebook.com" &&
+        event.origin !== "https://web.facebook.com"
+      ) {
+        console.log("❌ Ignored message from unknown origin");
+        return;
+      }
+
+      let data = event.data;
+
+      // Sometimes Meta sends JSON string
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+          console.log("Parsed string message:", data);
+        } catch (error) {
+          console.log("❌ Could not parse event.data as JSON");
+          return;
+        }
+      }
+
+      if (data?.type !== "WA_EMBEDDED_SIGNUP") {
+        console.log("Not a WhatsApp Embedded Signup event");
+        return;
+      }
+
+      console.log("✅ WA_EMBEDDED_SIGNUP EVENT");
+      console.log("Full Meta event:", data);
+
+      console.log("Meta event type:", data.event);
+      console.log("Meta event data:", data.data);
+
+      if (data.event === "FINISH") {
+        const signupData = data.data || {};
+
+        const parsedWhatsAppData = {
+          wabaId: signupData.waba_id,
+          phoneNumberId: signupData.phone_number_id,
+          displayPhoneNumber:
+            signupData.display_phone_number ||
+            signupData.phone_number,
+          verifiedName: signupData.verified_name,
+        };
+
+        console.log("========== FINAL WHATSAPP DATA ==========");
+        console.log("WABA ID:", parsedWhatsAppData.wabaId);
+        console.log(
+          "Phone Number ID:",
+          parsedWhatsAppData.phoneNumberId
+        );
+        console.log(
+          "Display Phone:",
+          parsedWhatsAppData.displayPhoneNumber
+        );
+        console.log(
+          "Verified Name:",
+          parsedWhatsAppData.verifiedName
+        );
+        console.log("==========================================");
+
+        waDataRef.current = parsedWhatsAppData;
       }
     };
 
     window.addEventListener("message", handleMessage);
+
+    console.log("✅ WhatsApp postMessage listener attached");
+
     return () => {
       window.removeEventListener("message", handleMessage);
+      console.log("WhatsApp postMessage listener removed");
     };
   }, []);
 
-  if (!accesstoken) {
+  if (!accessToken) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Unauthorized access</h2>
-          <p className="text-gray-600">Missing authorization token.</p>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            Unauthorized access
+          </h2>
+
+          <p className="text-gray-600">
+            Missing authorization token.
+          </p>
         </div>
       </div>
     );
   }
 
+  // ------------------------------------------------
+  // CONNECT WHATSAPP
+  // ------------------------------------------------
   const handleConnect = () => {
+    console.log("========== CONNECT CLICKED ==========");
+
+    console.log("School ID:", schoolId);
+    console.log("User ID:", userId);
+    console.log("Has Access Token:", !!accessToken);
+
+    if (!schoolId) {
+      console.error("❌ SCHOOL ID IS MISSING");
+      setError("School ID is missing.");
+      return;
+    }
+
     if (!window.FB) {
+      console.error("❌ Facebook SDK not loaded");
       setError("Facebook SDK not loaded. Please try again.");
       return;
     }
 
+    console.log("✅ Facebook SDK available");
+
     setLoading(true);
     setError(null);
-    waDataRef.current = null; // Reset previously captured data
+
+    // Clear previous data
+    waDataRef.current = null;
+
+    console.log("Opening Meta Embedded Signup...");
 
     window.FB.login(
       (response) => {
+        console.log("========== FB LOGIN RESPONSE ==========");
+        console.log("FB response:", response);
+
         if (response.authResponse) {
           const authCode = response.authResponse.code;
-          
-          // Wait briefly to ensure the message event has been processed
+
+          console.log("✅ Meta authorization successful");
+
+          console.log(
+            "Authorization code received:",
+            authCode ? "YES" : "NO"
+          );
+
           setTimeout(async () => {
+            console.log(
+              "========== CHECKING META SIGNUP DATA =========="
+            );
+
             const waData = waDataRef.current;
 
+            console.log("Stored WhatsApp data:", waData);
+
+            if (!waData) {
+              console.error(
+                "❌ WhatsApp Embedded Signup data not received"
+              );
+
+              setError(
+                "WhatsApp signup data was not received from Meta."
+              );
+
+              setLoading(false);
+              return;
+            }
+
+            if (!waData.wabaId) {
+              console.error("❌ WABA ID missing");
+              setError(
+                "WhatsApp Business Account ID was not received from Meta."
+              );
+              setLoading(false);
+              return;
+            }
+
+            if (!waData.phoneNumberId) {
+              console.error("❌ Phone Number ID missing");
+              setError(
+                "WhatsApp Phone Number ID was not received from Meta."
+              );
+              setLoading(false);
+              return;
+            }
+
+            if (!schoolId) {
+              console.error("❌ School ID missing");
+              setError("School ID is missing.");
+              setLoading(false);
+              return;
+            }
+
+            const payload = {
+              code: authCode,
+              schoolId,
+              wabaId: waData.wabaId,
+              phoneNumberId: waData.phoneNumberId,
+              displayPhoneNumber:
+                waData.displayPhoneNumber || null,
+              verifiedName:
+                waData.verifiedName || null,
+            };
+
+            console.log("========== BACKEND PAYLOAD ==========");
+            console.log({
+              ...payload,
+              code: payload.code ? "PRESENT" : "MISSING",
+            });
+            console.log("======================================");
+
             try {
-              const res = await fetch("/api/whatsapp/embedded-signup/exchange/", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${accesstoken}`,
-                },
-                body: JSON.stringify({
-                  code: authCode,
-                  schoolId: id,
-                  wabaId: waData?.waba_id,
-                  phoneNumberId: waData?.phone_number_id,
-                  displayPhoneNumber: waData?.phone_number,
-                  verifiedName: waData?.verified_name,
-                }),
-              });
+              console.log(
+                "Sending request to embedded-signup exchange..."
+              );
+
+              const res = await fetch(
+                "/api/whatsapp/embedded-signup/exchange/",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                  body: JSON.stringify(payload),
+                }
+              );
+
+              console.log(
+                "Backend HTTP status:",
+                res.status
+              );
+
+              const responseData = await res
+                .json()
+                .catch(() => ({}));
+
+              console.log(
+                "Backend response:",
+                responseData
+              );
 
               if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.message || `Server responded with status ${res.status}`);
+                throw new Error(
+                  responseData.message ||
+                    `Server responded with status ${res.status}`
+                );
               }
+
+              console.log(
+                "✅ WhatsApp account connected successfully"
+              );
 
               setSuccess(true);
             } catch (err) {
-              console.error("Exchange error:", err);
-              setError(err.message || "Failed to link WhatsApp account.");
+              console.error(
+                "❌ Exchange error:",
+                err
+              );
+
+              setError(
+                err.message ||
+                  "Failed to link WhatsApp account."
+              );
             } finally {
               setLoading(false);
             }
-          }, 1000); // 1 second delay to ensure postMessage arrives from the popup
+          }, 1000);
         } else {
-          setError("User cancelled login or did not fully authorize.");
+          console.log(
+            "❌ User cancelled Meta login"
+          );
+
+          setError(
+            "User cancelled login or did not fully authorize."
+          );
+
           setLoading(false);
         }
       },
@@ -111,82 +335,80 @@ function WhatsAppConnectContent() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+
       <Script
         src="https://connect.facebook.net/en_US/sdk.js"
         strategy="lazyOnload"
         onLoad={() => {
+          console.log(
+            "========== FACEBOOK SDK LOADED =========="
+          );
+
           if (window.FB) {
             window.FB.init({
               appId: "2290666861778395",
               xfbml: true,
               version: "v26.0",
             });
+
+            console.log("✅ Facebook SDK initialized");
+
             setIsLoaded(true);
+          } else {
+            console.error(
+              "❌ Facebook SDK object not found"
+            );
           }
         }}
       />
-      
+
       <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full">
+
         <h1 className="text-2xl font-bold text-gray-800 mb-2 text-center">
           Connect WhatsApp
         </h1>
-        
+
         {businessName && (
           <p className="text-gray-600 mb-6 text-center">
-            Link WhatsApp to <strong>{businessName}</strong>
+            Link WhatsApp to{" "}
+            <strong>{businessName}</strong>
           </p>
         )}
 
-        {!businessName && <div className="mb-6"></div>}
-
         {success ? (
           <div className="bg-green-50 text-green-700 p-6 rounded-md text-center border border-green-200">
-            <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="font-bold text-xl mb-2">Successfully Connected!</h3>
-            <p className="text-sm">Your WhatsApp account has been linked successfully. You can now close this window and return to the application.</p>
+            <h3 className="font-bold text-xl mb-2">
+              Successfully Connected!
+            </h3>
+
+            <p className="text-sm">
+              Your WhatsApp account has been linked
+              successfully.
+            </p>
           </div>
         ) : (
           <>
             <button
               onClick={handleConnect}
               disabled={!isLoaded || loading}
-              className={`w-full py-3 px-4 rounded-md font-semibold text-white transition-all shadow-sm
-                ${
-                  !isLoaded || loading
-                    ? "bg-blue-400 cursor-not-allowed opacity-70"
-                    : "bg-blue-600 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800"
-                }
-              `}
+              className={`w-full py-3 px-4 rounded-md font-semibold text-white ${
+                !isLoaded || loading
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Connecting...
-                </span>
-              ) : !isLoaded ? (
-                "Loading SDK..."
-              ) : (
-                "Connect WhatsApp"
-              )}
+              {loading
+                ? "Connecting..."
+                : !isLoaded
+                ? "Loading SDK..."
+                : "Connect WhatsApp"}
             </button>
 
             {error && (
-              <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-md text-sm border border-red-200 flex items-start">
-                <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{error}</span>
+              <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-md text-sm border border-red-200">
+                {error}
               </div>
             )}
-            
-            <p className="text-xs text-gray-500 mt-6 text-center">
-              By connecting, you agree to our terms and conditions and privacy policy. This will open a secure Meta popup.
-            </p>
           </>
         )}
       </div>
@@ -196,17 +418,13 @@ function WhatsAppConnectContent() {
 
 export default function WhatsAppConnectPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full text-center">
-          <svg className="animate-spin mx-auto h-8 w-8 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600">Loading connection page...</p>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          Loading...
         </div>
-      </div>
-    }>
+      }
+    >
       <WhatsAppConnectContent />
     </Suspense>
   );
