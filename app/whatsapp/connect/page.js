@@ -7,10 +7,9 @@ import { Suspense, useEffect, useState, useRef } from "react";
 function WhatsAppConnectContent() {
   const searchParams = useSearchParams();
 
-  const schoolId =
-    searchParams.get("schoolId") ||
-    searchParams.get("id");
-
+  // -----------------------------------------
+  // GET PARAMETERS FROM URL
+  // -----------------------------------------
   const userId = searchParams.get("userId");
   const accessToken = searchParams.get("accessToken");
   const businessName = searchParams.get("businessName");
@@ -22,108 +21,158 @@ function WhatsAppConnectContent() {
 
   const waDataRef = useRef(null);
 
-  // ------------------------------------------------
-  // URL DEBUG LOG
-  // ------------------------------------------------
+  // -----------------------------------------
+  // DEBUG URL PARAMETERS
+  // -----------------------------------------
   useEffect(() => {
-    console.log("========== WHATSAPP CONNECT DEBUG ==========");
+    console.log("========== WHATSAPP CONNECT ==========");
 
-    console.log("Current URL:", window.location.href);
+    console.log("URL:", window.location.href);
+    console.log("User ID:", userId);
+    console.log("Business Name:", businessName);
+    console.log(
+      "Access Token:",
+      accessToken ? "PRESENT" : "MISSING",
+    );
 
-    console.log("Query Parameters:", {
-      schoolId,
-      userId,
-      businessName,
-      hasAccessToken: !!accessToken,
-    });
+    console.log("======================================");
+  }, [userId, accessToken, businessName]);
 
-    console.log("============================================");
-  }, [schoolId, userId, businessName, accessToken]);
-
-  // ------------------------------------------------
-  // META POSTMESSAGE LISTENER
-  // ------------------------------------------------
+  // -----------------------------------------
+  // META POSTMESSAGE
+  // -----------------------------------------
   useEffect(() => {
     const handleMessage = (event) => {
-      console.log("========== POSTMESSAGE RECEIVED ==========");
+      console.log("========== META MESSAGE ==========");
       console.log("Origin:", event.origin);
-      console.log("Raw event.data:", event.data);
+      console.log("Raw data:", event.data);
 
       // Only accept Meta
       if (
         event.origin !== "https://www.facebook.com" &&
         event.origin !== "https://web.facebook.com"
       ) {
-        console.log("❌ Ignored message from unknown origin");
+        console.log("❌ Ignored unknown origin");
         return;
       }
 
       let data = event.data;
 
-      // Sometimes Meta sends JSON string
+      // Meta can send JSON string
       if (typeof data === "string") {
         try {
           data = JSON.parse(data);
-          console.log("Parsed string message:", data);
-        } catch (error) {
-          console.log("❌ Could not parse event.data as JSON");
+        } catch {
+          console.log("❌ Could not parse Meta message");
           return;
         }
       }
 
       if (data?.type !== "WA_EMBEDDED_SIGNUP") {
-        console.log("Not a WhatsApp Embedded Signup event");
         return;
       }
 
-      console.log("✅ WA_EMBEDDED_SIGNUP EVENT");
-      console.log("Full Meta event:", data);
+      console.log(
+        "✅ WA_EMBEDDED_SIGNUP:",
+        data,
+      );
 
-      console.log("Meta event type:", data.event);
-      console.log("Meta event data:", data.data);
-
+      // -----------------------------------------
+      // FINISH
+      // -----------------------------------------
       if (data.event === "FINISH") {
         const signupData = data.data || {};
 
-        const parsedWhatsAppData = {
+        console.log(
+          "========== META SIGNUP DATA ==========",
+        );
+
+        console.log(
+          "WABA ID:",
+          signupData.waba_id,
+        );
+
+        console.log(
+          "Phone Number ID:",
+          signupData.phone_number_id,
+        );
+
+        console.log(
+          "Display Phone:",
+          signupData.display_phone_number ||
+            signupData.phone_number,
+        );
+
+        console.log(
+          "Verified Name:",
+          signupData.verified_name,
+        );
+
+        waDataRef.current = {
           wabaId: signupData.waba_id,
-          phoneNumberId: signupData.phone_number_id,
+
+          phoneNumberId:
+            signupData.phone_number_id,
+
           displayPhoneNumber:
             signupData.display_phone_number ||
             signupData.phone_number,
-          verifiedName: signupData.verified_name,
+
+          verifiedName:
+            signupData.verified_name,
         };
 
-        console.log("========== FINAL WHATSAPP DATA ==========");
-        console.log("WABA ID:", parsedWhatsAppData.wabaId);
         console.log(
-          "Phone Number ID:",
-          parsedWhatsAppData.phoneNumberId
+          "Saved WhatsApp data:",
+          waDataRef.current,
         );
-        console.log(
-          "Display Phone:",
-          parsedWhatsAppData.displayPhoneNumber
-        );
-        console.log(
-          "Verified Name:",
-          parsedWhatsAppData.verifiedName
-        );
-        console.log("==========================================");
 
-        waDataRef.current = parsedWhatsAppData;
+        console.log(
+          "======================================",
+        );
+      }
+
+      // -----------------------------------------
+      // CANCEL
+      // -----------------------------------------
+      if (data.event === "CANCEL") {
+        console.log(
+          "❌ WhatsApp Embedded Signup cancelled:",
+          data.data,
+        );
+      }
+
+      // -----------------------------------------
+      // ERROR
+      // -----------------------------------------
+      if (data.event === "ERROR") {
+        console.error(
+          "❌ WhatsApp Embedded Signup error:",
+          data.data,
+        );
       }
     };
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener(
+      "message",
+      handleMessage,
+    );
 
-    console.log("✅ WhatsApp postMessage listener attached");
+    console.log(
+      "✅ Meta message listener attached",
+    );
 
     return () => {
-      window.removeEventListener("message", handleMessage);
-      console.log("WhatsApp postMessage listener removed");
+      window.removeEventListener(
+        "message",
+        handleMessage,
+      );
     };
   }, []);
 
+  // -----------------------------------------
+  // ACCESS TOKEN CHECK
+  // -----------------------------------------
   if (!accessToken) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -140,199 +189,282 @@ function WhatsAppConnectContent() {
     );
   }
 
-  // ------------------------------------------------
+  // -----------------------------------------
   // CONNECT WHATSAPP
-  // ------------------------------------------------
+  // -----------------------------------------
   const handleConnect = () => {
-    console.log("========== CONNECT CLICKED ==========");
+    console.log(
+      "========== CONNECT WHATSAPP ==========",
+    );
 
-    console.log("School ID:", schoolId);
     console.log("User ID:", userId);
-    console.log("Has Access Token:", !!accessToken);
 
-    if (!schoolId) {
-      console.error("❌ SCHOOL ID IS MISSING");
-      setError("School ID is missing.");
+    if (!userId) {
+      console.error("❌ userId missing");
+
+      setError(
+        "Missing userId. Please check the connection URL.",
+      );
+
       return;
     }
 
     if (!window.FB) {
-      console.error("❌ Facebook SDK not loaded");
-      setError("Facebook SDK not loaded. Please try again.");
+      console.error(
+        "❌ Facebook SDK not loaded",
+      );
+
+      setError(
+        "Facebook SDK not loaded. Please try again.",
+      );
+
       return;
     }
 
-    console.log("✅ Facebook SDK available");
+    console.log("✅ Facebook SDK loaded");
 
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
-    // Clear previous data
+    // Clear old Meta data
     waDataRef.current = null;
 
-    console.log("Opening Meta Embedded Signup...");
+    console.log(
+      "Opening Meta Embedded Signup...",
+    );
 
     window.FB.login(
       (response) => {
-        console.log("========== FB LOGIN RESPONSE ==========");
-        console.log("FB response:", response);
+        console.log(
+          "========== FACEBOOK LOGIN RESPONSE ==========",
+        );
 
-        if (response.authResponse) {
-          const authCode = response.authResponse.code;
+        console.log(
+          "FB response:",
+          response,
+        );
 
-          console.log("✅ Meta authorization successful");
-
+        if (!response.authResponse) {
           console.log(
-            "Authorization code received:",
-            authCode ? "YES" : "NO"
-          );
-
-          setTimeout(async () => {
-            console.log(
-              "========== CHECKING META SIGNUP DATA =========="
-            );
-
-            const waData = waDataRef.current;
-
-            console.log("Stored WhatsApp data:", waData);
-
-            if (!waData) {
-              console.error(
-                "❌ WhatsApp Embedded Signup data not received"
-              );
-
-              setError(
-                "WhatsApp signup data was not received from Meta."
-              );
-
-              setLoading(false);
-              return;
-            }
-
-            if (!waData.wabaId) {
-              console.error("❌ WABA ID missing");
-              setError(
-                "WhatsApp Business Account ID was not received from Meta."
-              );
-              setLoading(false);
-              return;
-            }
-
-            if (!waData.phoneNumberId) {
-              console.error("❌ Phone Number ID missing");
-              setError(
-                "WhatsApp Phone Number ID was not received from Meta."
-              );
-              setLoading(false);
-              return;
-            }
-
-            if (!schoolId) {
-              console.error("❌ School ID missing");
-              setError("School ID is missing.");
-              setLoading(false);
-              return;
-            }
-
-            const payload = {
-              code: authCode,
-              schoolId,
-              wabaId: waData.wabaId,
-              phoneNumberId: waData.phoneNumberId,
-              displayPhoneNumber:
-                waData.displayPhoneNumber || null,
-              verifiedName:
-                waData.verifiedName || null,
-            };
-
-            console.log("========== BACKEND PAYLOAD ==========");
-            console.log({
-              ...payload,
-              code: payload.code ? "PRESENT" : "MISSING",
-            });
-            console.log("======================================");
-
-            try {
-              console.log(
-                "Sending request to embedded-signup exchange..."
-              );
-
-              const res = await fetch(
-                "/api/whatsapp/embedded-signup/exchange/",
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                  },
-                  body: JSON.stringify(payload),
-                }
-              );
-
-              console.log(
-                "Backend HTTP status:",
-                res.status
-              );
-
-              const responseData = await res
-                .json()
-                .catch(() => ({}));
-
-              console.log(
-                "Backend response:",
-                responseData
-              );
-
-              if (!res.ok) {
-                throw new Error(
-                  responseData.message ||
-                    `Server responded with status ${res.status}`
-                );
-              }
-
-              console.log(
-                "✅ WhatsApp account connected successfully"
-              );
-
-              setSuccess(true);
-            } catch (err) {
-              console.error(
-                "❌ Exchange error:",
-                err
-              );
-
-              setError(
-                err.message ||
-                  "Failed to link WhatsApp account."
-              );
-            } finally {
-              setLoading(false);
-            }
-          }, 1000);
-        } else {
-          console.log(
-            "❌ User cancelled Meta login"
+            "❌ User cancelled or authorization failed",
           );
 
           setError(
-            "User cancelled login or did not fully authorize."
+            "User cancelled login or did not fully authorize.",
           );
 
           setLoading(false);
+
+          return;
         }
+
+        const authCode =
+          response.authResponse.code;
+
+        console.log(
+          "✅ Authorization code received:",
+          !!authCode,
+        );
+
+        // Give Meta postMessage time to arrive
+        setTimeout(async () => {
+          console.log(
+            "========== FINAL META DATA ==========",
+          );
+
+          const waData =
+            waDataRef.current;
+
+          console.log(
+            "WhatsApp data:",
+            waData,
+          );
+
+          if (!waData?.wabaId) {
+            console.error(
+              "❌ WABA ID missing",
+            );
+
+            setError(
+              "WhatsApp Business Account ID was not received from Meta.",
+            );
+
+            setLoading(false);
+
+            return;
+          }
+
+          if (!waData?.phoneNumberId) {
+            console.error(
+              "❌ Phone Number ID missing",
+            );
+
+            setError(
+              "WhatsApp Phone Number ID was not received from Meta.",
+            );
+
+            setLoading(false);
+
+            return;
+          }
+
+          if (!userId) {
+            console.error(
+              "❌ User ID missing",
+            );
+
+            setError(
+              "User ID is missing.",
+            );
+
+            setLoading(false);
+
+            return;
+          }
+
+          // -----------------------------------------
+          // BACKEND PAYLOAD
+          // -----------------------------------------
+          const payload = {
+            code: authCode,
+
+            userId,
+
+            wabaId:
+              waData.wabaId,
+
+            phoneNumberId:
+              waData.phoneNumberId,
+
+            displayPhoneNumber:
+              waData.displayPhoneNumber ||
+              null,
+
+            verifiedName:
+              waData.verifiedName ||
+              null,
+          };
+
+          console.log(
+            "========== BACKEND PAYLOAD ==========",
+          );
+
+          console.log({
+            code: payload.code
+              ? "PRESENT"
+              : "MISSING",
+
+            userId:
+              payload.userId,
+
+            wabaId:
+              payload.wabaId,
+
+            phoneNumberId:
+              payload.phoneNumberId,
+
+            displayPhoneNumber:
+              payload.displayPhoneNumber,
+
+            verifiedName:
+              payload.verifiedName,
+          });
+
+          console.log(
+            "=====================================",
+          );
+
+          try {
+            console.log(
+              "Sending POST request to exchange API...",
+            );
+
+            const res = await fetch(
+              "https://backend-for-drawing-school.vercel.app/api/whatsapp/embedded-signup/exchange/",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  Authorization:
+                    `Bearer ${accessToken}`,
+                },
+
+                body:
+                  JSON.stringify(payload),
+              },
+            );
+
+            console.log(
+              "Backend HTTP status:",
+              res.status,
+            );
+
+            const result =
+              await res
+                .json()
+                .catch(() => ({}));
+
+            console.log(
+              "Backend response:",
+              result,
+            );
+
+            if (!res.ok) {
+              throw new Error(
+                result.message ||
+                  result.error ||
+                  `Server responded with status ${res.status}`,
+              );
+            }
+
+            console.log(
+              "✅ WhatsApp connection successful",
+            );
+
+            setSuccess(true);
+
+          } catch (err) {
+            console.error(
+              "❌ Exchange error:",
+              err,
+            );
+
+            setError(
+              err.message ||
+                "Failed to link WhatsApp account.",
+            );
+
+          } finally {
+            setLoading(false);
+          }
+        }, 1500);
       },
+
       {
-        config_id: "2655838821499638",
-        response_type: "code",
-        override_default_response_type: true,
+        config_id:
+          "2655838821499638",
+
+        response_type:
+          "code",
+
+        override_default_response_type:
+          true,
+
         extras: {
           version: "v4",
           sessionInfoVersion: "3",
         },
-      }
+      },
     );
   };
 
+  // -----------------------------------------
+  // UI
+  // -----------------------------------------
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
 
@@ -341,22 +473,28 @@ function WhatsAppConnectContent() {
         strategy="lazyOnload"
         onLoad={() => {
           console.log(
-            "========== FACEBOOK SDK LOADED =========="
+            "========== FACEBOOK SDK ==========",
           );
 
           if (window.FB) {
             window.FB.init({
-              appId: "2290666861778395",
+              appId:
+                "2290666861778395",
+
               xfbml: true,
-              version: "v26.0",
+
+              version:
+                "v26.0",
             });
 
-            console.log("✅ Facebook SDK initialized");
+            console.log(
+              "✅ Facebook SDK initialized",
+            );
 
             setIsLoaded(true);
           } else {
             console.error(
-              "❌ Facebook SDK object not found"
+              "❌ Facebook SDK unavailable",
             );
           }
         }}
@@ -371,37 +509,57 @@ function WhatsAppConnectContent() {
         {businessName && (
           <p className="text-gray-600 mb-6 text-center">
             Link WhatsApp to{" "}
-            <strong>{businessName}</strong>
+            <strong>
+              {businessName}
+            </strong>
           </p>
         )}
 
         {success ? (
           <div className="bg-green-50 text-green-700 p-6 rounded-md text-center border border-green-200">
+
+            <svg
+              className="w-16 h-16 text-green-500 mx-auto mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+
             <h3 className="font-bold text-xl mb-2">
               Successfully Connected!
             </h3>
 
             <p className="text-sm">
-              Your WhatsApp account has been linked
-              successfully.
+              Your WhatsApp account has been
+              linked successfully.
             </p>
+
           </div>
         ) : (
           <>
             <button
               onClick={handleConnect}
-              disabled={!isLoaded || loading}
-              className={`w-full py-3 px-4 rounded-md font-semibold text-white ${
+              disabled={
                 !isLoaded || loading
-                  ? "bg-blue-400 cursor-not-allowed"
+              }
+              className={`w-full py-3 px-4 rounded-md font-semibold text-white transition-all shadow-sm ${
+                !isLoaded || loading
+                  ? "bg-blue-400 cursor-not-allowed opacity-70"
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               {loading
                 ? "Connecting..."
                 : !isLoaded
-                ? "Loading SDK..."
-                : "Connect WhatsApp"}
+                  ? "Loading SDK..."
+                  : "Connect WhatsApp"}
             </button>
 
             {error && (
@@ -409,6 +567,12 @@ function WhatsAppConnectContent() {
                 {error}
               </div>
             )}
+
+            <p className="text-xs text-gray-500 mt-6 text-center">
+              By connecting, you agree to
+              our terms and conditions and
+              privacy policy.
+            </p>
           </>
         )}
       </div>
@@ -420,8 +584,12 @@ export default function WhatsAppConnectPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          Loading...
+        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+          <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full text-center">
+            <p className="text-gray-600">
+              Loading connection page...
+            </p>
+          </div>
         </div>
       }
     >
