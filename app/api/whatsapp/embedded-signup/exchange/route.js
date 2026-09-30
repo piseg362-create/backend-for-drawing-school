@@ -280,7 +280,7 @@ const savedConnection =
       displayPhoneNumber,
       verifiedName,
       status: "connected",
-    },
+    }, 
     {
       new: true,
       upsert: true,
