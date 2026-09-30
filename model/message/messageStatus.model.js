@@ -4,9 +4,10 @@ const whatsappConnectionSchema = new mongoose.Schema(
   {
     // School / customer this WhatsApp account belongs to
     schoolId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
       index: true,
+      ref: "User",
     },
 
     // WhatsApp Business Account ID
@@ -47,14 +48,11 @@ const whatsappConnectionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const WhatsAppConnectionModel =
   mongoose.models.WhatsAppConnection ||
-  mongoose.model(
-    "WhatsAppConnection",
-    whatsappConnectionSchema
-  );
+  mongoose.model("WhatsAppConnection", whatsappConnectionSchema);
 
 export default WhatsAppConnectionModel;
