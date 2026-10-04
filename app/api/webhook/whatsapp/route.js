@@ -138,6 +138,7 @@ export async function POST(request) {
       {
         success: true,
         message: "EVENT_RECEIVED",
+        data: body, // Added for testing purposes so you can see the parsed payload in your response
       },
       { status: 200 }
     );
