@@ -45,6 +45,16 @@ const userSchema = new mongoose.Schema({
     default: true,
   },
 
+  razorpayPaymentData: {
+    type: Object,
+    default: null,
+  },
+
+  isPaymentVerified: {
+    type: Boolean,
+    default: false,
+  },
+
   // Add this field inside userSchema:
   whatsAppConfig: {
     type: mongoose.Schema.Types.ObjectId,

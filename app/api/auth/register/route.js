@@ -8,8 +8,15 @@ export async function POST(req) {
   try {
     await connectDB();
     const body = await req.json();
-    const { businessName, handlerName, mobileNumber, password, language } =
-      body;
+    const {
+      businessName,
+      handlerName,
+      mobileNumber,
+      password,
+      language,
+      razorpayPaymentData,
+      isPaymentVerified,
+    } = body;
 
     if (!businessName || !handlerName || !mobileNumber || !password) {
       return NextResponse.json(
@@ -35,6 +42,8 @@ export async function POST(req) {
       mobileNumber,
       password: hashedPassword,
       language,
+      razorpayPaymentData,
+      isPaymentVerified,
     });
 
     // Create tokens
