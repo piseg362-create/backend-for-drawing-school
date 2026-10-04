@@ -46,6 +46,7 @@ export async function POST(req) {
     const tokenPayload = {
       businessName: user.businessName,
       id: user._id.toString(),
+      isPaymentVerified: user.isPaymentVerified,
     };
 
     const accessToken = await createAccessToken(tokenPayload);
@@ -63,6 +64,7 @@ export async function POST(req) {
         businessName: user.businessName,
         handlerName: user.handlerName,
         mobileNumber: user.mobileNumber,
+        isPaymentVerified: user.isPaymentVerified,
         accessToken,
         refreshToken: user.refreshToken,
       },
