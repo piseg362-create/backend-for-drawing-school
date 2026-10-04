@@ -10,8 +10,10 @@ export async function GET() {
       message: "API and MongoDB working",
     });
   } catch (error) {
+
     console.error("MongoDB connection error:", error);
 
+    
     return NextResponse.json(
       {
         success: false,
