@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const studentSchema = new mongoose.Schema(
+const instructorSchema = new mongoose.Schema(
   {
     client: {
       type: mongoose.Schema.Types.ObjectId,
@@ -10,15 +10,6 @@ const studentSchema = new mongoose.Schema(
     },
     name: {
       type: String,
-      required: true,
-      trim: true,
-    },
-    rollNumber: {
-      type: String,
-      trim: true,
-    },
-    batch: {
-      type: String, // e.g., "Morning Batch", "Class 10-A"
       required: true,
       trim: true,
     },
@@ -40,9 +31,9 @@ const studentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index to prevent duplicate roll numbers within the same business/batch
-studentSchema.index({ client: 1, batch: 1, rollNumber: 1 }, { unique: true });
+// Prevent duplicate instructor names within the same business if needed (optional)
+// instructorSchema.index({ client: 1, name: 1 }, { unique: true });
 
-const StudentModel =
-  mongoose.models.Student || mongoose.model("Student", studentSchema);
-export default StudentModel;
+const InstructorModel =
+  mongoose.models.Instructor || mongoose.model("instructor", instructorSchema);
+export default InstructorModel;
