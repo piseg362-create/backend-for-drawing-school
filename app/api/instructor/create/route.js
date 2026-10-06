@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/db/connetion";
 import InstructorModel from "@/model/instructor/instructor.model";
-import UserModel from "@/model/user/user.model";
 import { generateSixDigitToken } from "@/utils/generateToken";
 
 export async function POST(req) {
@@ -12,38 +11,14 @@ export async function POST(req) {
     const {
       name,
       systemId,
-      clientId // This is the ObjectId of the User (business)
     } = body;
 
     // Validate required fields
-    if (!name || !clientId) {
+    if (!name ) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields: name or clientId" },
+        { success: false, message: "Missing required fields: name" },
         { status: 400 }
       );
-    }
-
-    // Verify if the client (business/user) exists
-    const client = await UserModel.findById(clientId);
-    if (!client) {
-      return NextResponse.json(
-        { success: false, message: "Client (business) not found" },
-        { status: 404 }
-      );
-    }
-
-    // Optional: Check if an instructor with the same systemId already exists for this client
-    if (systemId) {
-      const existingInstructor = await InstructorModel.findOne({
-        client: clientId,
-        systemId
-      });
-      if (existingInstructor) {
-        return NextResponse.json(
-          { success: false, message: "Instructor with this systemId already exists for this client" },
-          { status: 400 }
-        );
-      }
     }
 
     // Generate unique accessToken
@@ -60,7 +35,6 @@ export async function POST(req) {
 
     // Create the new instructor document
     const newInstructor = new InstructorModel({
-      client: clientId,
       name,
       systemId,
       accessToken
