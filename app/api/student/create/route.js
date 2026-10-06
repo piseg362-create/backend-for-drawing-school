@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/db/connetion";
 import StudentModel from "@/model/student/student.model";
-import UserModel from "@/model/user/user.model";
+
 import { generateSixDigitToken } from "@/utils/generateToken";
 
 export async function POST(req) {
@@ -13,31 +13,31 @@ export async function POST(req) {
       name,
       number,
       systemId,
-      instructorCode,
-      batch
+      userId,
+      batch,
+      accessToken: instructorToken
     } = body;
 
+    console.log(name,
+      number,
+      systemId,
+      userId,
+      batch,instructorToken)
+
     // Validate required fields based on the student schema and user request
-    if (!name || !instructorCode || !batch) {
+    if (!name || !userId || !batch) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields: name, instructorCode, or batch" },
+        { success: false, message: "Missing required fields: name, userId, or batch" },
         { status: 400 }
       );
     }
 
-    // Verify if the instructor (client/user) exists
-    const client = await UserModel.findById(instructorCode);
-    if (!client) {
-      return NextResponse.json(
-        { success: false, message: "Instructor not found" },
-        { status: 404 }
-      );
-    }
+
 
     // Check for duplicate roll number within the same business and batch
     if (number) {
       const existingStudent = await StudentModel.findOne({
-        client: instructorCode,
+        client: userId,
         batch,
         rollNumber: number
       });
@@ -63,12 +63,13 @@ export async function POST(req) {
 
     // Create the new student document
     const newStudent = new StudentModel({
-      client: instructorCode,
+      client: userId,
       name,
       rollNumber: number,
       batch,
       systemId,
-      accessToken
+      accessToken,
+      instructorAccessToken: instructorToken
     });
 
     await newStudent.save();

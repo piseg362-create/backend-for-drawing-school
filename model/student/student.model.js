@@ -3,8 +3,7 @@ import mongoose from "mongoose";
 const studentSchema = new mongoose.Schema(
   {
     client: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: true,
       index: true, // Crucial for tenant isolation
     },
@@ -31,6 +30,10 @@ const studentSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true,
+    },
+    instructorAccessToken: {
+      type: String,
+      trim: true,
     },
     isActive: {
       type: Boolean,
