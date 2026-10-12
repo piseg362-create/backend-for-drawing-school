@@ -8,43 +8,44 @@ export async function POST(req) {
   try {
     await connectDB();
     const body = await req.json();
-    
+
     const {
       name,
       number,
       systemId,
       userId,
       batch,
-      accessToken: instructorToken
+      accessToken: instructorToken,
     } = body;
 
-    console.log(name,
-      number,
-      systemId,
-      userId,
-      batch,instructorToken)
+    console.log(name, number, systemId, userId, batch, instructorToken);
 
     // Validate required fields based on the student schema and user request
     if (!name || !userId || !batch) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields: name, userId, or batch" },
-        { status: 400 }
+        {
+          success: false,
+          message: "Missing required fields: name, userId, or batch",
+        },
+        { status: 400 },
       );
     }
-
-
 
     // Check for duplicate roll number within the same business and batch
     if (number) {
       const existingStudent = await StudentModel.findOne({
         client: userId,
         batch,
-        rollNumber: number
+        rollNumber: number,
       });
       if (existingStudent) {
         return NextResponse.json(
-          { success: false, message: "Student with this roll number already exists in this batch" },
-          { status: 400 }
+          {
+            success: false,
+            message:
+              "Student with this roll number already exists in this batch",
+          },
+          { status: 400 },
         );
       }
     }
@@ -69,7 +70,7 @@ export async function POST(req) {
       batch,
       systemId,
       accessToken,
-      instructorAccessToken: instructorToken
+      instructorAccessToken: instructorToken,
     });
 
     await newStudent.save();
@@ -78,16 +79,19 @@ export async function POST(req) {
       {
         success: true,
         message: "Student created successfully",
-        data: newStudent
+        data: newStudent,
       },
-      { status: 201 }
+      { status: 201 },
     );
-
   } catch (error) {
     console.error("Error creating student:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create student", error: error.message },
-      { status: 500 }
+      {
+        success: false,
+        message: "Failed to create student",
+        error: error.message,
+      },
+      { status: 500 },
     );
   }
 }

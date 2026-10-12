@@ -28,25 +28,37 @@ export default function AttendancePage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/attendance");
-      const data = await res.json();
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+      const res = await fetch("/api/attendance", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      const resText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        console.error("Failed to parse JSON. Response was:", resText, "Status:", res.status);
+        setLoading(false);
+        return;
+      }
+
       if (data.success) {
         setStudents(data.students);
         
-        // Group logic to find the first batch to open by default
-        const batches = Array.from(new Set(data.students.map((s: any) => s.batch))).sort();
+        // Open the first batch by default
+        const batches = Array.from(new Set(data.students.map((s: any) => s.batch || "Unassigned"))).sort() as string[];
         if (batches.length > 0) {
-          // Normalize the first batch from DB and match to SCHEDULE_SLOTS format
-          const dbBatch = (batches[0] as string).replace(/\s+/g, "");
-          const matchedSlot = [
-            "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00", 
-            "11:00 - 12:00", "12:00 - 13:00", "13:00 - 14:00", 
-            "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", 
-            "17:00 - 18:00", "18:00 - 19:00", "19:00 - 20:00", 
-            "20:00 - 21:00"
-          ].find(s => s.replace(/\s+/g, "") === dbBatch) || batches[0] as string;
-
-          setOpenBatches({ [matchedSlot]: true });
+          setOpenBatches({ [batches[0]]: true });
         }
 
         const attMap: Record<string, boolean> = {};
@@ -95,9 +107,13 @@ export default function AttendancePage() {
         status: attendance[student._id] ? "present" : "absent",
       }));
 
+      const token = localStorage.getItem("token");
       const res = await fetch("/api/attendance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           date: today,
           records,
@@ -118,26 +134,21 @@ export default function AttendancePage() {
     }
   };
 
-  // Fixed schedule from 8 AM to 9 PM
-  const SCHEDULE_SLOTS = useMemo(() => [
-    "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00", 
-    "11:00 - 12:00", "12:00 - 13:00", "13:00 - 14:00", 
-    "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", 
-    "17:00 - 18:00", "18:00 - 19:00", "19:00 - 20:00", 
-    "20:00 - 21:00"
-  ], []);
-
-  // Group students by fixed schedule slots
+  // Group students dynamically by their actual batch strings
   const groupedStudents = useMemo(() => {
-    return SCHEDULE_SLOTS.map(slot => {
-      // Normalize slot strings (remove spaces) to match database data robustly
-      const normalizedSlot = slot.replace(/\s+/g, "");
-      const batchStudents = students.filter(
-        (s) => (s.batch || "").replace(/\s+/g, "") === normalizedSlot
-      );
-      return [slot, batchStudents] as [string, any[]];
+    const batchMap = new Map<string, any[]>();
+    
+    students.forEach((student) => {
+      const batchName = student.batch || "Unassigned";
+      if (!batchMap.has(batchName)) {
+        batchMap.set(batchName, []);
+      }
+      batchMap.get(batchName)!.push(student);
     });
-  }, [students, SCHEDULE_SLOTS]);
+
+    // Convert map to array and sort by batch name
+    return Array.from(batchMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [students]);
 
   if (loading) {
     return (

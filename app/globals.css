@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
 :root {
+  /* ☀️ Light Mode Theme */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+
+  /* 🎨 Brand & Primary Colors (Shared) */
+  --primary: #c1552c;
+  --primary-foreground: #fafafa;
+  --accent: #f97316;
+  --brand-muted: #64748b;
+  --ring: #c1552c;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 🌙 Dark Mode Theme */
+    --background: #12141a;
+    --foreground: #f2e9de;
+    --card: #1e222d;
+    --card-foreground: #f2e9de;
+    --secondary: #2c3242;
+    --secondary-foreground: #f2e9de;
+    --muted: #2c3242;
+    --muted-foreground: #a8967b;
+    --border: #2c3242;
+    --input: #2c3242;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-brand-muted: var(--brand-muted);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --radius: var(--radius);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes drive {
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(calc(100vw + 100px)); }
+}
+.animate-drive {
+  animation: drive 10s linear infinite;
 }
