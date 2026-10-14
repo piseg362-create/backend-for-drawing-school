@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import WhatsAppConnectionModel from "../../../../../model/message/messageStatus.model";
+import WhatsAppConnectionModel from "../../../../../model/message/whatsAppConnection.model";
 import { connectDB } from "../../../../../db/connetion";
 
 export async function POST(request) {
